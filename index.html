@@ -393,34 +393,39 @@
 
     // Process uploaded files
     async function handleFiles(files) {
-      const validFiles = Array.from(files).filter(f => f.type === 'application/pdf' || f.name.endsWith('.pdf'));
+  // 1. Explicitly check if the library is loaded
+  if (typeof PDFLib === 'undefined') {
+    alert('Error: The PDFLib library could not be loaded. Please ensure you are connected to the internet and running the page through a web server (HTTP/HTTPS), not a local file:// URL.');
+    return;
+  }
 
-      if (validFiles.length === 0) {
-        alert('Please select valid PDF documents.');
-        return;
-      }
+  const validFiles = Array.from(files).filter(f => f.type === 'application/pdf' || f.name.endsWith('.pdf'));
 
-      for (const file of validFiles) {
-        try {
-          const buffer = await file.arrayBuffer();
-          // Read page count via pdf-lib
-          const pdfDoc = await PDFLib.PDFDocument.load(buffer, { ignoreEncryption: true });
-          const pages = pdfDoc.getPageCount();
+  if (validFiles.length === 0) {
+    alert('Please select valid PDF documents.');
+    return;
+  }
 
-          fileQueue.push({
-            id: Math.random().toString(36).substring(2, 9),
-            file: file,
-            buffer: buffer,
-            pageCount: pages
-          });
-        } catch (err) {
-          console.error(err);
-          alert(`Could not load "${file.name}". It might be password-protected or corrupted.`);
-        }
-      }
+  for (const file of validFiles) {
+    try {
+      const buffer = await file.arrayBuffer();
+      const pdfDoc = await PDFLib.PDFDocument.load(buffer, { ignoreEncryption: true });
+      const pages = pdfDoc.getPageCount();
 
-      renderList();
+      fileQueue.push({
+        id: Math.random().toString(36).substring(2, 9),
+        file: file,
+        buffer: buffer,
+        pageCount: pages
+      });
+    } catch (err) {
+      console.error(err);
+      alert(`Could not parse "${file.name}". Details: ${err.message}`);
     }
+  }
+
+  renderList();
+}
 
     // Format file sizes
     function formatBytes(bytes) {
